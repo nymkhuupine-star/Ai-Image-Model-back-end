@@ -2,8 +2,12 @@ const express = require("express");
 const cors = require("cors");
 const multer = require("multer");
 const path = require("path");
-require("dotenv").config(); // .env-д HF_TOKEN хадгалах
+const fs = require("fs");
+
 const { InferenceClient } = require("@huggingface/inference");
+
+const env = require("dotenv");
+env.config();
 
 const app = express();
 const PORT = process.env.PORT || 1000;
@@ -11,7 +15,6 @@ const PORT = process.env.PORT || 1000;
 app.use(cors());
 app.use(express.json());
 
-// Multer тохиргоо
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/"),
   filename: (req, file, cb) =>
@@ -21,47 +24,68 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 app.use("/uploads", express.static("uploads"));
 
-// Зураг upload endpoint
-app.post("/image", upload.single("image"), (req, res) => {
-  if (!req.file) return res.status(400).json({ message: "No image uploaded" });
+app.post("/describe-image", async (req, res) => {
+  console.log("hello");
+  res.send("hello");
+  if (!req.file) {
+    return res.status(400).json({ message: "No image uploaded" });
+  }
 
-  res.json({
-    filename: req.file.filename,
-    path: req.file.path,
-  });
-});
+  const imagePath = path.join(__dirname, req.file.path);
+  const imageBuffer = fs.readFileSync(imagePath);
 
-// Hugging Face description endpoint
-app.post("/describe", async (req, res) => {
-  const { filename } = req.body;
-  if (!filename)
-    return res.status(400).json({ message: "No filename provided" });
-
-  const imageUrl = `http://localhost:${PORT}/uploads/${filename}`;
   const client = new InferenceClient(process.env.HF_TOKEN);
 
   try {
-    const chatCompletion = await client.chatCompletion({
+    const response = await client.chatCompletion({
       model: "zai-org/GLM-4.6V-Flash:novita",
       messages: [
         {
           role: "user",
           content: [
-            { type: "text", text: "Describe this image in one sentence." },
-            { type: "image_url", image_url: { url: imageUrl } },
+            {
+              type: "text",
+              text: "Describe the image in one positive sentence highlighting the most beautiful things you can see. Use a friendly tone.",
+            },
+            {
+              type: "image",
+              image: imageBuffer,
+            },
           ],
         },
       ],
     });
 
-    const description = chatCompletion.choices[0].message.content[0].text;
+    const description = response.choices[0].message.content[0].text;
     res.json({ description });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Failed to generate description" });
+    res.status(500).json({ message: "Failed to describe image" });
   }
 });
 
-app.listen(PORT, () =>
-  console.log(`Server running on http://localhost:${PORT}`)
-);
+app.get("/", (req, res) => {
+  console.log(req);
+  res.send("hello");
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
+
+// const express = require("express");
+// const cors = require("cors");
+
+// const app = express();
+// const PORT = process.env.PORT || 1000;
+
+// app.use(cors());
+// app.use(express.json());
+
+// app.get("/", (req, res) => {
+//   res.send("hello");
+// });
+
+// app.listen(PORT, () => {
+//   console.log(`API beebeg on http://localhost:${PORT}`);
+// });
