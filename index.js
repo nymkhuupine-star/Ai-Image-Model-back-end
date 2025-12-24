@@ -1,3 +1,5 @@
+require('dotenv').config();
+console.log("🔑 HF_TOKEN:", process.env.HF_TOKEN ? "✓ Олдсон" : "✗ Олдсонгүй");
 
 const express = require("express");
 const cors = require("cors");

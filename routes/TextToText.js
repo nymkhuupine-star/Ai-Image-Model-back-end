@@ -23,11 +23,5 @@ router.post('/summarize', textToTextController.summarizeText);
  */
 router.post('/translate', textToTextController.translateText);
 
-/**
- * @route   POST /api/text-to-text/paraphrase
- * @desc    Текстийг өөрөөр хэлэх
- * @access  Public
- */
-router.post('/paraphrase', textToTextController.paraphraseText);
 
 module.exports = router;

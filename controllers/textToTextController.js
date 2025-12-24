@@ -1,11 +1,11 @@
 const axios = require("axios");
 
-const HUGGING_FACE_API_KEY = process.env.HUGGING_FACE_API_KEY;
+console.log("🔍 LibreTranslate API ашиглаж байна (Үнэгүй)");
 
-const HF_API_URL = "https://api-inference.huggingface.co/models";
 exports.textToText = async (req, res) => {
   try {
     const { text, task } = req.body;
+
     if (!text) {
       return res.status(400).json({
         success: false,
@@ -13,55 +13,65 @@ exports.textToText = async (req, res) => {
       });
     }
 
-    let model = "google/flan-t5-base";
-    let inputs = text;
-
-    switch (task) {
-      case "summarize":
-        model = "facebook/bart-large-cnn";
-        break;
-      case "translate":
-        model = "Helsinki-NLP/opus-mt-en-de";
-        break;
-      case "paraphrase":
-        model = "tuner007/pegasus_paraphrase";
-        break;
-      default:
-        model = "google/flan-t5-base";
-    }
-
-    const response = await axios.post(
-      `${HF_API_URL}/${model}`,
-      {
-        inputs: inputs,
-        options: {
-          wait_for_model: true,
-        },
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${HUGGING_FACE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        timeout: 120000,
-      }
-    );
+    console.log(`📝 Оролт: ${text.substring(0, 100)}...`);
+    console.log(`🔄 Task: ${task}`);
 
     let generatedText = "";
 
-    if (Array.isArray(response.data) && response.data[0]) {
-      generatedText =
-        response.data[0].generated_text ||
-        response.data[0].summary_text ||
-        response.data[0].translation_text ||
-        response.data[0].text ||
-        JSON.stringify(response.data[0]);
-    } else if (response.data.generated_text) {
-      generatedText = response.data.generated_text;
-    } else if (typeof response.data === "string") {
-      generatedText = response.data;
+    if (task === "translate") {
+      // LibreTranslate API ашиглах (Англи -> Орос)
+      try {
+        const translateResponse = await axios.post(
+          "https://libretranslate.com/translate",
+          {
+            q: text,
+            source: "en",
+            target: "ru",
+            format: "text"
+          },
+          {
+            headers: {
+              "Content-Type": "application/json"
+            },
+            timeout: 30000
+          }
+        );
+
+        generatedText = translateResponse.data.translatedText;
+        console.log("✅ Орчуулга амжилттай:", generatedText.substring(0, 100));
+
+      } catch (translateError) {
+        console.error("❌ LibreTranslate алдаа:", translateError.message);
+        
+        // Fallback: MyMemory API (өөр үнэгүй API)
+        try {
+          console.log("🔄 MyMemory API ашиглаж байна...");
+          const fallbackResponse = await axios.get(
+            `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|ru`,
+            { timeout: 30000 }
+          );
+
+          generatedText = fallbackResponse.data.responseData.translatedText;
+          console.log("✅ MyMemory орчуулга амжилттай");
+
+        } catch (fallbackError) {
+          throw new Error("Орчуулга хийх боломжгүй байна. Дахин оролдоно уу.");
+        }
+      }
+
+    } else if (task === "summarize") {
+      // Summarize function (одоогоор дэмжихгүй)
+      return res.status(501).json({
+        success: false,
+        message: "Summarize функц одоогоор дэмжигдэхгүй байна.",
+      });
+
     } else {
-      generatedText = JSON.stringify(response.data);
+      // General text generation (одоогоор дэмжихгүй)
+      return res.status(501).json({
+        success: false,
+        message: "General text generation одоогоор дэмжигдэхгүй байна.",
+      });
     }
 
     res.status(200).json({
@@ -69,34 +79,18 @@ exports.textToText = async (req, res) => {
       data: {
         originalText: text,
         generatedText: generatedText,
-        model: model,
-        task: task || "general",
+        model: "LibreTranslate (en→ru)",
+        task: task,
       },
     });
+
   } catch (error) {
-    console.error("Text-to-Text алдаа:", error.response?.data || error.message);
-
-    if (error.response?.status === 503) {
-      return res.status(503).json({
-        success: false,
-        message:
-          "Модель ачаалагдаж байна. 20-30 секунд хүлээгээд дахин оролдоно уу.",
-        error: error.response?.data,
-      });
-    }
-
-    if (error.response?.status === 401) {
-      return res.status(401).json({
-        success: false,
-        message: "Hugging Face API key буруу байна",
-        error: error.response?.data,
-      });
-    }
+    console.error("❌ Алдаа:", error.message);
 
     res.status(500).json({
       success: false,
-      message: "Text-to-Text үүсгэхэд алдаа гарлаа",
-      error: error.message || "Unknown error",
+      message: error.message || "Алдаа гарлаа",
+      details: error.response?.data,
     });
   }
 };
@@ -108,10 +102,5 @@ exports.summarizeText = async (req, res) => {
 
 exports.translateText = async (req, res) => {
   req.body.task = "translate";
-  return exports.textToText(req, res);
-};
-
-exports.paraphraseText = async (req, res) => {
-  req.body.task = "paraphrase";
   return exports.textToText(req, res);
 };
