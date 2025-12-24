@@ -11,12 +11,12 @@ const textToTextRoutes = require("./routes/TextToText");
 const app = express();
 const PORT = process.env.PORT || 1000;
 
-// app.use(
-//   cors({
-//     origin: ["https://ai-image-model-back-end.onrender.com"],
-//     credentials: true,
-//   })
-// );
+app.use(
+  cors({
+    origin: "https://ai-image-model-front-end-igla.vercel.app", // front-end URL
+    credentials: true, // allow cookies or auth headers
+  })
+);
 
 app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
