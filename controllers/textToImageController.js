@@ -42,7 +42,7 @@ const textToImage = async (req, res) => {
     await fs.writeFile(filePath, buffer);
 
     const PORT = process.env.PORT || 1000;
-    const BACKEND_URL = "https://my-backend-server.com";
+    const BACKEND_URL = "https://ai-image-model-back-end.onrender.com";
     const imageUrl = `${BACKEND_URL}/uploads/${fileName}`;
 
     res.status(200).json({
