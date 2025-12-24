@@ -42,7 +42,8 @@ const textToImage = async (req, res) => {
     await fs.writeFile(filePath, buffer);
 
     const PORT = process.env.PORT || 1000;
-    const imageUrl = `http://localhost:${PORT}/uploads/${fileName}`;
+    const BACKEND_URL = "https://my-backend-server.com";
+    const imageUrl = `${BACKEND_URL}/uploads/${fileName}`;
 
     res.status(200).json({
       success: true,
