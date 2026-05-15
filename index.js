@@ -12,8 +12,13 @@ const PORT = process.env.PORT || 1000;
 
 app.use(
   cors({
-    origin: "https://ai-image-model-front-end-igla.vercel.app", // front-end URL
-    credentials: true, // allow cookies or auth headers
+    origin: [
+      "https://ai-image-model-front-end.vercel.app",
+      "https://ai-image-model-front-end-igla.vercel.app",
+      "http://localhost:3000",
+      "http://localhost:3001",
+    ],
+    credentials: true,
   })
 );
 
