@@ -1,6 +1,4 @@
 const { InferenceClient } = require("@huggingface/inference");
-const fs = require("fs").promises;
-const path = require("path");
 require("dotenv").config();
 
 const client = new InferenceClient(process.env.HF_TOKEN);
@@ -18,7 +16,6 @@ const textToImage = async (req, res) => {
 
     console.log("Generating image for prompt:", prompt);
 
-    // Hugging Face text-to-image model
     const imageBlob = await client.textToImage({
       model: "black-forest-labs/FLUX.1-schnell",
       inputs: prompt,
@@ -30,25 +27,13 @@ const textToImage = async (req, res) => {
       },
     });
 
-    // Blob-г Buffer болгох
     const arrayBuffer = await imageBlob.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    // Зургийг хадгалах
-    const fileName = `generated-${Date.now()}.png`;
-    const uploadDir = path.join(__dirname, "..", "uploads");
-    const filePath = path.join(uploadDir, fileName);
-
-    await fs.writeFile(filePath, buffer);
-
-    const PORT = process.env.PORT || 1000;
-    const BACKEND_URL = "https://ai-image-model-back-end.onrender.com";
-    const imageUrl = `${BACKEND_URL}/uploads/${fileName}`;
+    const base64 = Buffer.from(arrayBuffer).toString("base64");
+    const imageUrl = `data:image/png;base64,${base64}`;
 
     res.status(200).json({
       success: true,
       imageUrl,
-      fileName,
       prompt,
     });
   } catch (error) {
